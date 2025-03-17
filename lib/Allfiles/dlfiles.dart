@@ -112,9 +112,11 @@ class AccessFileScreen extends StatelessWidget {
 }
 */
 
-import 'package:dlplatforms_task/Services/NetworkService.dart';
+
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:dlplatforms_task/Services/NetworkService.dart';
 
 class AccessFileController extends GetxController {
   var selectedTab = 'All'.obs;
@@ -125,7 +127,7 @@ class AccessFileController extends GetxController {
   Future<void> fetchFilesAndFolders() async {
     try {
       final networkService = NetworkService();
-      final data = await networkService.getFilesAndFolders();
+      final data = await networkService.getFilesAndFolders(); // Fetch files and folders
 
       folders.value = List<String>.from(data['folders']); // Assuming the response contains 'folders' key
       files.value = List<String>.from(data['files']); // Assuming the response contains 'files' key
