@@ -1,103 +1,151 @@
-//Signup section
+
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class SignupController extends GetxController {
-  var isRememberMeChecked = false.obs;
-  var usernameController = TextEditingController();
-  var passwordController = TextEditingController();
+class RegisterController extends GetxController {
+  var isChecked = false.obs;
 }
 
-class SignupPage extends StatelessWidget {
-  final SignupController controller = Get.put(SignupController());
+class RegisterScreen extends StatelessWidget {
+  final RegisterController controller = Get.put(RegisterController());
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 30),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 50),
-                Text(
-                  "dl.surf",
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  "Welcome back!",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                ),
-                Row(
-                  children: [
-                    Text("Don't have an account yet?"),
-                    TextButton(
-                      onPressed: () {}, 
-                      child: Text("Sign up", style: TextStyle(color: Colors.blue))
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: controller.usernameController,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: "Username or Email",
-                  ),
-                ),
-                const SizedBox(height: 15),
-                TextField(
-                  controller: controller.passwordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: "Password",
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Obx(() => Checkbox(
-                          value: controller.isRememberMeChecked.value,
-                          onChanged: (value) {
-                            controller.isRememberMeChecked.value = value!;
-                          },
-                        )),
-                    Text("Remember me"),
-                    Spacer(),
-                    TextButton(
-                      onPressed: () {}, 
-                      child: Text("Forgot Password?", style: TextStyle(color: Colors.blue))
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                    ),
-                    onPressed: () {
-                      // Perform signup logic here
-                    },
-                    child: Text(
-                      "Sign Up",
-                      style: TextStyle(color: Colors.white, fontSize: 18),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 30),
-              ],
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Curved top section
+            ClipPath(
+              clipper: CurvedClipper(),
+              child: Container(
+                height: 200,
+                color: const Color.fromARGB(255, 64, 23, 227),
+              ),
             ),
-          ),
+            Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'dl.surf',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    'Register an account.',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 5),
+                  Row(
+                    children: [
+                      Text('Already have an account? '),
+                      GestureDetector(
+                        onTap: () => Get.toNamed('/login'),
+                        child: Text(
+                          'Sign in',
+                          style: TextStyle(
+                            color: Colors.blue,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 30),
+                  TextField(
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Full Name',
+                    ),
+                  ),
+                  SizedBox(height: 15),
+                  TextField(
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Email',
+                    ),
+                  ),
+                  SizedBox(height: 15),
+                  TextField(
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Password',
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Obx(() => Checkbox(
+                            value: controller.isChecked.value,
+                            onChanged: (value) {
+                              controller.isChecked.value = value!;
+                            },
+                          )),
+                      Text('I agree to the '),
+                      GestureDetector(
+                        onTap: () {},
+                        child: Text(
+                          'Terms & Conditions',
+                          style: TextStyle(
+                            color: Colors.blue,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () {},
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 64, 23, 227),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                      ),
+                      child: Text(
+                        'Register',
+                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
+
+// Custom Clipper for Curved Design
+class CurvedClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    Path path = Path();
+    path.lineTo(0, size.height - 50);
+    path.quadraticBezierTo(size.width / 2, size.height, size.width, size.height - 50);
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+
+
