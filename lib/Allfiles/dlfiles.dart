@@ -1,12 +1,14 @@
 //Access Overview page
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:dlplatforms_task/Services/NetworkService.dart';
+
 class AccessFileController extends GetxController {
   var selectedTab = 'All'.obs;
   var folders = <String>[].obs;
   var files = <String>[].obs;
-  var isLoading = true.obs; 
+  var isLoading = true.obs;
 
   final NetworkService networkService = NetworkService(); // Instance of NetworkService
 
@@ -148,3 +150,4 @@ class AccessFileScreen extends StatelessWidget {
     );
   }
 }
+

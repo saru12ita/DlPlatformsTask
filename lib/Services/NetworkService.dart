@@ -1,4 +1,5 @@
 // NetworkService.dart
+
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -26,7 +27,6 @@ class NetworkService {
       print('Register response status: ${response.statusCode}');
       print('Register response body: ${response.body}');
 
-      // Corrected registration logic to check for 201 response code
       if (response.statusCode == 201) {
         print('Registration successful');
         return true;
@@ -43,7 +43,7 @@ class NetworkService {
     }
   }
 
-  // Login function (Handles cookies properly)
+  // Login function (Stores Token Properly)
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       final response = await http.post(
@@ -60,16 +60,19 @@ class NetworkService {
       print('Login response status: ${response.statusCode}');
       print('Login response body: ${response.body}');
 
-      // Corrected successful login check for 201 response code
-      if (response.statusCode == 201) {
-        // Extract cookies from the response headers (Set-Cookie)
-        final cookies = response.headers['set-cookie'];
-        if (cookies != null) {
-          // Store cookies securely using FlutterSecureStorage
-          await storage.write(key: 'cookies', value: cookies);
-          print('Cookies stored successfully');
+      if (response.statusCode == 201) { // Check for 201 status code
+        final responseData = jsonDecode(response.body);
+
+        // Extract token from response (token might be in the cookies or header)
+        final String? accessToken = responseData['access_token']; // Make sure to check the actual response format
+
+        if (accessToken != null && accessToken.isNotEmpty) {
+          await storage.write(key: 'accessToken', value: accessToken);
+          print('Login successful, Token Stored: $accessToken');
+          return {'status': 'success', 'accessToken': accessToken};
+        } else {
+          return {'status': 'error', 'message': 'Access token missing in response'};
         }
-        return {'status': 'success', 'message': 'Login successful'};
       } else {
         return {'status': 'error', 'message': 'Invalid credentials or account status'};
       }
@@ -79,21 +82,19 @@ class NetworkService {
     }
   }
 
-  // Fetching files using stored cookies
+  // Fetching files using stored token
   Future<Map<String, dynamic>> getFilesAndFolders() async {
     try {
-      // Get the stored cookies for session management
-      final String? cookies = await storage.read(key: 'cookies');
-      if (cookies == null) {
-        print('No cookies found. Please login again.');
-        return {'status': 'error', 'message': 'No cookies found. Please login again.'};
+      final String? token = await storage.read(key: 'accessToken');
+      if (token == null) {
+        print('No access token found. Please login again.');
+        return {'status': 'error', 'message': 'No access token found. Please login again.'};
       }
 
-      // Make the request using the cookies stored from the login response
       final response = await http.get(
         Uri.parse('https://api.dl.surf/api/file/folder-structure/'),
         headers: {
-          'Cookie': cookies,
+          'Authorization': 'Bearer $token',
         },
       );
 
@@ -112,9 +113,9 @@ class NetworkService {
     }
   }
 
-  // Logout function (Clears Cookies)
+  // Logout function (Clears Token)
   Future<void> logout() async {
-    await storage.delete(key: 'cookies');
+    await storage.delete(key: 'accessToken');
     print('User logged out successfully');
   }
 }

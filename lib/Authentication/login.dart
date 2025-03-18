@@ -1,4 +1,5 @@
 //Login Screen
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:dlplatforms_task/Services/NetworkService.dart';
@@ -236,3 +237,4 @@ class WaveClipper extends CustomClipper<Path> {
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
+
