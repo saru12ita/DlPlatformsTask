@@ -1,18 +1,18 @@
 //Access Overview page
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:dlplatforms_task/Services/NetworkService.dart';
-
 class AccessFileController extends GetxController {
   var selectedTab = 'All'.obs;
   var folders = <String>[].obs;
   var files = <String>[].obs;
+  var isLoading = true.obs; 
+
+  final NetworkService networkService = NetworkService(); // Instance of NetworkService
 
   // Fetch files and folders from the API
   Future<void> fetchFilesAndFolders() async {
     try {
-      final networkService = NetworkService();
       final data = await networkService.getFilesAndFolders(); // Fetch files and folders
 
       if (data['status'] == 'success') {
@@ -24,7 +24,16 @@ class AccessFileController extends GetxController {
     } catch (e) {
       print('Error fetching files and folders: $e');
       Get.snackbar('Error', 'Failed to fetch files and folders', snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      isLoading.value = false; 
     }
+  }
+
+  // Clear files and folders when tab changes
+  void onTabChanged(String tab) {
+    selectedTab.value = tab;
+    isLoading.value = true; 
+    fetchFilesAndFolders(); 
   }
 }
 
@@ -34,7 +43,9 @@ class AccessFileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Fetch the files and folders when the screen is initialized
-    controller.fetchFilesAndFolders();
+    if (controller.isLoading.value) {
+      controller.fetchFilesAndFolders();
+    }
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -53,13 +64,14 @@ class AccessFileScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Tab Selection
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: ['All', 'Folders', 'Files'].map((tab) {
                 return Obx(() => Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8.0),
                       child: GestureDetector(
-                        onTap: () => controller.selectedTab.value = tab,
+                        onTap: () => controller.onTabChanged(tab), // Change tab on tap
                         child: Text(
                           tab,
                           style: TextStyle(
@@ -74,25 +86,35 @@ class AccessFileScreen extends StatelessWidget {
               }).toList(),
             ),
             SizedBox(height: 20),
-            // Folders Section
-            Text('Folders', style: TextStyle(color: Colors.white, fontSize: 18)),
-            SizedBox(height: 10),
-            Obx(() => controller.folders.isEmpty
-                ? CircularProgressIndicator() // Show loading indicator until data is fetched
-                : _buildFolderList(controller.folders)),
-            SizedBox(height: 20),
-            // Files Section
-            Text('Files', style: TextStyle(color: Colors.white, fontSize: 18)),
-            SizedBox(height: 10),
-            Obx(() => controller.files.isEmpty
-                ? CircularProgressIndicator() // Show loading indicator until data is fetched
-                : Expanded(child: _buildFileList(controller.files))),
+            // Loading Indicator for All content
+            Obx(() => controller.isLoading.value
+                ? Center(child: CircularProgressIndicator())
+                : _buildTabContent()), // Show content or loading spinner based on isLoading state
           ],
         ),
       ),
     );
   }
 
+  // Build the content for the selected tab (All, Folders, Files)
+  Widget _buildTabContent() {
+    switch (controller.selectedTab.value) {
+      case 'Folders':
+        return _buildFolderList(controller.folders);
+      case 'Files':
+        return _buildFileList(controller.files);
+      default:
+        return Column(
+          children: [
+            _buildFolderList(controller.folders),
+            SizedBox(height: 20),
+            _buildFileList(controller.files),
+          ],
+        );
+    }
+  }
+
+  // Folders Section
   Widget _buildFolderList(List<String> folders) {
     return Column(
       children: folders
@@ -105,8 +127,11 @@ class AccessFileScreen extends StatelessWidget {
     );
   }
 
+  // Files Section
   Widget _buildFileList(List<String> files) {
     return ListView.builder(
+      shrinkWrap: true, // Makes the ListView take only the required space
+      physics: NeverScrollableScrollPhysics(), // Prevents scrolling if the parent has its own scroll
       itemCount: files.length,
       itemBuilder: (context, index) {
         return Card(

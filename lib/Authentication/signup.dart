@@ -30,33 +30,49 @@ class RegisterScreen extends StatelessWidget {
       return;
     }
 
-    // Register the user using the NetworkService
-    bool registrationSuccess = await networkService.register(
-      fullName,
-      email,
-      password,
-      referredByCode,
-    );
+    if (!controller.isChecked.value) {
+      Get.snackbar('Error', 'You must agree to the Terms & Conditions');
+      return;
+    }
 
-    // Debug log to inspect the result of registration
-    print("Registration Success: $registrationSuccess");
+    try {
+      // Register the user using the NetworkService
+      bool signupResult = await networkService.register(
+        fullName,
+        email,
+        password,
+        referredByCode,
+      );
 
-    // Check if the registration was successful
-    if (registrationSuccess) {
-      // Proceed to login automatically after successful registration
-      var loginResult = await networkService.login(email, password);
+      // Check if registration was successful
+      if (signupResult) {
+        // Proceed to login automatically after successful registration
+        var loginResult = await networkService.login(email, password);
 
-      if (loginResult['status'] == 'success') {
-        // If login is successful
-        Get.snackbar('Success', 'Login successful');
-        Get.offAllNamed('/dlfiles'); // Navigate to DLFiles screen after successful login
+        // Check if login was successful
+        if (loginResult['status'] == 'success') {
+          // Save cookies securely
+          final cookies = await storage.read(key: 'cookies');
+          if (cookies != null) {
+            // Store the cookie in the secure storage for session management
+            await storage.write(key: 'cookies', value: cookies);
+            print('Cookies stored successfully');
+          }
+
+          // If login is successful
+          Get.snackbar('Success', 'Login successful');
+          Get.offAllNamed('/dlfiles'); // Navigate to DLFiles screen after successful login
+        } else {
+          // If login fails
+          Get.snackbar('Error', loginResult['message'] ?? 'Login failed. Please try again.');
+        }
       } else {
-        // If login fails
-        Get.snackbar('Error', loginResult['message'] ?? 'Login failed. Please try again.');
+        // Handle the case where registration failed
+        Get.snackbar('Error', 'Registration failed. Please try again.');
       }
-    } else {
-      // If registration failed, display the message (if any)
-      Get.snackbar('Error', 'Registration failed. Please try again.');
+    } catch (e) {
+      // Catch any error during the network request
+      Get.snackbar('Error', 'An error occurred: $e');
     }
   }
 

@@ -1,7 +1,6 @@
-
-import 'package:dlplatforms_task/Allfiles/dlfiles.dart';
 import 'package:dlplatforms_task/Authentication/login.dart';
 import 'package:dlplatforms_task/Authentication/signup.dart';
+import 'package:dlplatforms_task/Allfiles/dlfiles.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -18,16 +17,16 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      initialRoute: '/signup', // Set SignupPage as the default screen
+      initialRoute: '/signup', // Set LoginPage as the default screen
       getPages: [
-       GetPage(name: '/login', page: () => LoginPage()),
+        GetPage(name: '/login', page: () => LoginPage()),
         GetPage(name: '/signup', page: () => RegisterScreen()),
-        GetPage(name: '/dlfiles', page: () => AccessFileScreen()),
-
+        GetPage(name: '/dlfiles', page: () => AccessFileScreen()),  // Add your screen to display files
       ],
     );
   }
 }
+
 
 
 

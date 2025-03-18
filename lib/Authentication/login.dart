@@ -1,11 +1,9 @@
 //Login Screen
-
-
-import 'package:dlplatforms_task/Authentication/signup.dart';
-import 'package:dlplatforms_task/Services/NetworkService.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:dlplatforms_task/Services/NetworkService.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:dlplatforms_task/Authentication/signup.dart';
 
 class LoginController extends GetxController {
   var rememberMe = false.obs;
@@ -30,23 +28,39 @@ class LoginPage extends StatelessWidget {
       return;
     }
 
-    // Perform login
-    var loginResult = await networkService.login(email, password);
+    try {
+      // Perform login using the NetworkService
+      var loginResult = await networkService.login(email, password);
 
-    if (loginResult['status'] == 'success') {
-      // If login is successful, store the access token securely
-      String? accessToken = loginResult['access_token'];
-      if (accessToken != null) {
-        await storage.write(key: 'accessToken', value: accessToken);
-        Get.snackbar('Success', 'Login successful');
-        Get.offNamed('/dlfiles'); // Navigate to DLFiles screen after successful login
+      if (loginResult['status'] == 'success') {
+        // If login is successful, store the access token securely
+        String? accessToken = loginResult['access_token'];  // This should be the correct path to access token
+        if (accessToken != null) {
+          await storage.write(key: 'accessToken', value: accessToken);
+          Get.snackbar('Success', 'Login successful');
+          Get.offNamed('/dlfiles'); // Navigate to DLFiles screen after successful login
+        } else {
+          Get.snackbar('Error', 'Access token not found.');
+        }
       } else {
-        Get.snackbar('Error', 'Access token not found.');
+        // If login fails, display message
+        Get.snackbar('Error', loginResult['message'] ?? 'Login failed',
+            snackPosition: SnackPosition.BOTTOM);
       }
+    } catch (e) {
+      // Handle error in case of network issues or unexpected errors
+      Get.snackbar('Error', 'An error occurred: $e');
+    }
+  }
+
+  // Check if the user is authenticated
+  Future<void> checkAuthentication() async {
+    String? accessToken = await storage.read(key: 'accessToken');
+    if (accessToken == null) {
+      Get.snackbar('Error', 'No access token found. Please login again.');
+      Get.offNamed('/login');  // Redirect to login screen if no token
     } else {
-      // If login fails, display message
-      Get.snackbar('Error', loginResult['message'] ?? 'Login failed',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.offNamed('/dlfiles');  // Navigate to the next screen if token exists
     }
   }
 
