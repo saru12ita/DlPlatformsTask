@@ -35,13 +35,15 @@ class LoginPage extends StatelessWidget {
 
       if (loginResult['status'] == 'success') {
         // If login is successful, store the access token securely
-        String? accessToken = loginResult['access_token'];  // This should be the correct path to access token
+        String? accessToken = loginResult['accessToken'];  // This should be the correct path to access token
         if (accessToken != null) {
           await storage.write(key: 'accessToken', value: accessToken);
           Get.snackbar('Success', 'Login successful');
-          Get.offNamed('/dlfiles'); // Navigate to DLFiles screen after successful login
+          // Navigate to DLFiles screen after successful login
+          Get.offNamed('/dlfiles');
         } else {
-          Get.snackbar('Error', 'Access token not found.');
+          Get.snackbar('Error', 'Access token not found.',
+              snackPosition: SnackPosition.BOTTOM);
         }
       } else {
         // If login fails, display message
@@ -50,7 +52,8 @@ class LoginPage extends StatelessWidget {
       }
     } catch (e) {
       // Handle error in case of network issues or unexpected errors
-      Get.snackbar('Error', 'An error occurred: $e');
+      Get.snackbar('Error', 'An error occurred: $e',
+          snackPosition: SnackPosition.BOTTOM);
     }
   }
 
@@ -58,7 +61,8 @@ class LoginPage extends StatelessWidget {
   Future<void> checkAuthentication() async {
     String? accessToken = await storage.read(key: 'accessToken');
     if (accessToken == null) {
-      Get.snackbar('Error', 'No access token found. Please login again.');
+      Get.snackbar('Error', 'No access token found. Please login again.',
+          snackPosition: SnackPosition.BOTTOM);
       Get.offNamed('/login');  // Redirect to login screen if no token
     } else {
       Get.offNamed('/dlfiles');  // Navigate to the next screen if token exists
@@ -67,6 +71,9 @@ class LoginPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Call checkAuthentication when this screen is loaded
+    checkAuthentication();
+
     return Scaffold(
       body: Stack(
         children: [
@@ -237,4 +244,3 @@ class WaveClipper extends CustomClipper<Path> {
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
-

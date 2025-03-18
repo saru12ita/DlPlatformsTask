@@ -47,26 +47,11 @@ class RegisterScreen extends StatelessWidget {
 
       // Check if registration was successful
       if (signupResult) {
-        // Proceed to login automatically after successful registration
-        var loginResult = await networkService.login(email, password);
+        // Inform user to check email for validation
+        Get.snackbar('Success', 'Registration successful. Please check your email to validate your account.');
 
-        // Check if login was successful
-        if (loginResult['status'] == 'success') {
-          // Save cookies securely
-          final cookies = await storage.read(key: 'cookies');
-          if (cookies != null) {
-            // Store the cookie in the secure storage for session management
-            await storage.write(key: 'cookies', value: cookies);
-            print('Cookies stored successfully');
-          }
-
-          // If login is successful
-          Get.snackbar('Success', 'Login successful');
-          Get.offAllNamed('/dlfiles'); // Navigate to DLFiles screen after successful login
-        } else {
-          // If login fails
-          Get.snackbar('Error', loginResult['message'] ?? 'Login failed. Please try again.');
-        }
+        // Navigate to login screen after registration
+        Get.toNamed('/login');  // Redirecting user to login page after successful registration
       } else {
         // Handle the case where registration failed
         Get.snackbar('Error', 'Registration failed. Please try again.');
