@@ -1,8 +1,8 @@
-
-
+//Register Screen
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:dlplatforms_task/Services/NetworkService.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class RegisterController extends GetxController {
   var isChecked = false.obs;
@@ -16,12 +16,13 @@ class RegisterScreen extends StatelessWidget {
   final TextEditingController passwordController = TextEditingController();
 
   final NetworkService networkService = NetworkService(); // Create an instance of NetworkService
+  final FlutterSecureStorage storage = FlutterSecureStorage(); // Secure storage
 
   // Method to handle registration
   void registerUser() async {
-    final fullName = fullNameController.text;
-    final email = emailController.text;
-    final password = passwordController.text;
+    final fullName = fullNameController.text.trim();
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
     final referredByCode = ""; // Always sending empty string for referredByCode
 
     if (fullName.isEmpty || email.isEmpty || password.isEmpty) {
@@ -29,17 +30,32 @@ class RegisterScreen extends StatelessWidget {
       return;
     }
 
-    bool isRegistered = await networkService.register(
+    // Register the user using the NetworkService
+    bool registrationSuccess = await networkService.register(
       fullName,
       email,
       password,
       referredByCode,
     );
 
-    if (isRegistered) {
-      Get.snackbar('Success', 'Registration successful');
-      Get.toNamed('/login'); // Navigate to the login screen after successful registration
+    // Debug log to inspect the result of registration
+    print("Registration Success: $registrationSuccess");
+
+    // Check if the registration was successful
+    if (registrationSuccess) {
+      // Proceed to login automatically after successful registration
+      var loginResult = await networkService.login(email, password);
+
+      if (loginResult['status'] == 'success') {
+        // If login is successful
+        Get.snackbar('Success', 'Login successful');
+        Get.offAllNamed('/dlfiles'); // Navigate to DLFiles screen after successful login
+      } else {
+        // If login fails
+        Get.snackbar('Error', loginResult['message'] ?? 'Login failed. Please try again.');
+      }
     } else {
+      // If registration failed, display the message (if any)
       Get.snackbar('Error', 'Registration failed. Please try again.');
     }
   }
@@ -229,5 +245,7 @@ class WaveClipper extends CustomClipper<Path> {
   }
 
   @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+  bool shouldReclip(CustomClipper<Path> oldClipper) {
+    return false;
+  }
 }

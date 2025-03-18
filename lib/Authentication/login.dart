@@ -1,8 +1,11 @@
-//Login section 
+//Login Screen
+
+
 import 'package:dlplatforms_task/Authentication/signup.dart';
 import 'package:dlplatforms_task/Services/NetworkService.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class LoginController extends GetxController {
   var rememberMe = false.obs;
@@ -11,9 +14,41 @@ class LoginController extends GetxController {
 class LoginPage extends StatelessWidget {
   final LoginController controller = Get.put(LoginController());
   final NetworkService networkService = NetworkService();
+  final FlutterSecureStorage storage = FlutterSecureStorage(); // Secure storage
 
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+
+  // Method to handle login
+  void loginUser() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      Get.snackbar('Error', 'Please enter all fields',
+          snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
+
+    // Perform login
+    var loginResult = await networkService.login(email, password);
+
+    if (loginResult['status'] == 'success') {
+      // If login is successful, store the access token securely
+      String? accessToken = loginResult['access_token'];
+      if (accessToken != null) {
+        await storage.write(key: 'accessToken', value: accessToken);
+        Get.snackbar('Success', 'Login successful');
+        Get.offNamed('/dlfiles'); // Navigate to DLFiles screen after successful login
+      } else {
+        Get.snackbar('Error', 'Access token not found.');
+      }
+    } else {
+      // If login fails, display message
+      Get.snackbar('Error', loginResult['message'] ?? 'Login failed',
+          snackPosition: SnackPosition.BOTTOM);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +127,8 @@ class LoginPage extends StatelessWidget {
                             borderSide: BorderSide(color: Colors.blue),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.blue, width: 2.0),
+                            borderSide:
+                                BorderSide(color: Colors.blue, width: 2.0),
                           ),
                           labelText: "Username or Email",
                         ),
@@ -109,7 +145,8 @@ class LoginPage extends StatelessWidget {
                             borderSide: BorderSide(color: Colors.blue),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.blue, width: 2.0),
+                            borderSide:
+                                BorderSide(color: Colors.blue, width: 2.0),
                           ),
                           labelText: "Password",
                         ),
@@ -143,29 +180,17 @@ class LoginPage extends StatelessWidget {
                         width: double.infinity,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color.fromARGB(255, 64, 23, 227),
+                            backgroundColor:
+                                const Color.fromARGB(255, 64, 23, 227),
                             padding: EdgeInsets.symmetric(vertical: 15),
                             shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(6),
                             ),
                           ),
-                          onPressed: () async {
-                            final email = emailController.text;
-                            final password = passwordController.text;
-
-                            // Perform login
-                            bool isLoggedIn = await networkService.login(email, password);
-
-                            if (isLoggedIn) {
-                              Get.offNamed('/dlfiles'); // Navigate to the file access screen
-                            } else {
-                              Get.snackbar('Error', 'Login failed');
-                            }
-                          },
+                          onPressed: loginUser, // Call the login function
                           child: Text("Login",
-                              style:
-                                  TextStyle(fontSize: 18, color: Colors.white)),
+                              style: TextStyle(
+                                  fontSize: 18, color: Colors.white)),
                         ),
                       ),
                     ],

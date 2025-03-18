@@ -1,14 +1,17 @@
 
-//Networkservices files
+
+// NetworkService.dart
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class NetworkService {
   final Dio dio = Dio();
   final CookieJar cookieJar = CookieJar(); // CookieJar for managing cookies
-  
+  final FlutterSecureStorage storage = FlutterSecureStorage(); // Secure storage for tokens
+
   // Base URL for the API
   final String baseUrl = 'https://api.dl.surf/api/account/';
 
@@ -17,110 +20,147 @@ class NetworkService {
     dio.interceptors.add(CookieManager(cookieJar)); // Attach cookie manager to Dio
   }
 
-  // Register method
+  // ✅ Register User
   Future<bool> register(String fullName, String email, String password, String referredByCode) async {
     try {
       final response = await dio.post(
         '${baseUrl}register/',
         data: {
-          'email': email,
-          'fullname': fullName,
+          'email': email.trim(),
+          'fullname': fullName.trim(),
           'password': password,
           'referred_by_code': referredByCode,
         },
       );
 
+      // Check if registration is successful or the server asks for email verification
       if (response.statusCode == 200) {
-        // Successful registration
-        print('Registration successful');
+        print('✅ Registration successful');
         return true;
+      } else if (response.statusCode == 400 && response.data['status'] == 'success') {
+        // If the server returns 400 but still indicates registration success
+        print('✅ Registration successful. Please check your email to verify your account.');
+        return true;
+      } else if (response.statusCode == 400 && response.data['status'] == 'error') {
+        if (response.data['message'].contains('email: user with this Email already exists')) {
+          print('❌ Email already exists. Please use a different email address.');
+        }
+        return false;
       } else {
-        // Registration failed - print status and data
-        print('Failed to register: StatusCode: ${response.statusCode}, Response: ${response.data}');
+        print('❌ Registration failed: ${response.data}');
         return false;
       }
     } catch (e) {
-      // Handling DioError for more detailed debugging
-      if (e is DioError) {
-        // Dio specific error handling
-        print('DioError: ${e.message}');
-        if (e.response != null) {
-          print('DioError Response: ${e.response}');
-        }
-      } else {
-        // General error handling
-        print('Error during registration: $e');
-      }
+      _handleDioError(e, 'Registration');
       return false;
     }
   }
 
-  // Login method (with cookie handling)
-  Future<bool> login(String email, String password) async {
+  // ✅ Login User
+  Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       final response = await dio.post(
         '${baseUrl}login/',
         data: {
-          'email': email,
+          'email': email.trim(),
           'password': password,
         },
       );
 
-      if (response.statusCode == 200) {
-        // Successful login
-        print('Login successful');
-        return true;
-      } else {
-        // Login failed - print status and data
-        print('Failed to login: StatusCode: ${response.statusCode}, Response: ${response.data}');
-        return false;
-      }
-    } catch (e) {
-      // Handling DioError for more detailed debugging
-      if (e is DioError) {
-        print('DioError: ${e.message}');
-        if (e.response != null) {
-          print('DioError Response: ${e.response}');
+      if (response.statusCode == 200 && response.data['status'] == 'success') {
+        // Check if the user has been approved or verified
+        bool isVerified = response.data['is_api_approved'] ?? false;
+
+        if (!isVerified) {
+          print('❌ Account not verified. Please check your email to verify your account.');
+          return {'status': 'error', 'message': 'Account not verified. Please verify your email.'};
+        }
+
+        if (response.data['access_token'] != null) {
+          final String accessToken = response.data['access_token']; // Extract access token
+          await storage.write(key: 'accessToken', value: accessToken); // Store token securely
+          print('✅ Login successful, Token Stored: $accessToken');
+          return {'status': 'success', 'accessToken': accessToken}; // Return access token
+        } else {
+          return {'status': 'error', 'message': 'Missing access token from response'};
         }
       } else {
-        print('Error during login: $e');
+        print('❌ Login failed: ${response.data}');
+        return {'status': 'error', 'message': 'Invalid credentials or account status'};
       }
-      return false;
+    } catch (e) {
+      _handleDioError(e, 'Login');
+      return {'status': 'error', 'message': 'Login failed due to a network error'};
     }
   }
 
-  // Fetch files and folders from the folder structure endpoint (with cookies)
+  // ✅ Fetch files & folders with authentication
   Future<Map<String, dynamic>> getFilesAndFolders() async {
     try {
-      final cookies = await cookieJar.loadForRequest(Uri.parse('https://api.dl.surf/api/file/folder-structure/'));
+      final String? token = await storage.read(key: 'accessToken'); // Retrieve token
+      if (token == null) {
+        print('❌ No access token found. Please login again.');
+        return {'status': 'error', 'message': 'No access token found. Please login again.'};
+      }
 
       final response = await dio.get(
         'https://api.dl.surf/api/file/folder-structure/',
         options: Options(
           headers: {
-            'Cookie': cookies.isNotEmpty ? cookies.map((cookie) => '${cookie.name}=${cookie.value}').join('; ') : '',
+            'Authorization': 'Bearer $token', // Attach token to request
+            'Content-Type': 'application/json',
           },
         ),
       );
 
       if (response.statusCode == 200) {
-        return response.data as Map<String, dynamic>;
+        print('✅ Fetched files and folders successfully');
+        return {'status': 'success', 'data': response.data};
       } else {
-        print('Failed to fetch files and folders: StatusCode: ${response.statusCode}, Response: ${response.data}');
-        return {};
+        print('❌ Failed to fetch files and folders: ${response.data}');
+        return {'status': 'error', 'message': 'Failed to fetch files and folders'};
       }
     } catch (e) {
-      if (e is DioError) {
-        print('DioError: ${e.message}');
-        if (e.response != null) {
-          print('DioError Response: ${e.response}');
+      _handleDioError(e, 'Fetching Files');
+      return {'status': 'error', 'message': 'Failed to fetch files due to a network error'};
+    }
+  }
+
+  // ✅ Logout (Clears Token & Cookies)
+  Future<void> logout() async {
+    await storage.delete(key: 'accessToken'); // Remove token from storage
+    await cookieJar.deleteAll(); // Clear cookies
+    print('✅ User logged out successfully');
+  }
+
+  // 🚨 Error Handling
+  void _handleDioError(dynamic error, String operation) {
+    if (error is DioError) {
+      if (error.response != null) {
+        switch (error.response?.statusCode) {
+          case 400:
+            print('❌ Bad Request: ${error.response?.data}');
+            break;
+          case 401:
+            print('❌ Unauthorized: ${error.response?.data}');
+            break;
+          case 403:
+            print('❌ Forbidden: ${error.response?.data}');
+            break;
+          case 404:
+            print('❌ Not Found: ${error.response?.data}');
+            break;
+          case 500:
+            print('❌ Server Error: ${error.response?.data}');
+            break;
+          default:
+            print('❌ DioError in $operation: ${error.message}');
         }
       } else {
-        print('Error fetching files and folders: $e');
+        print('❌ No response received. Network error or timeout.');
       }
-      return {};
+    } else {
+      print('❌ Error in $operation: $error');
     }
   }
 }
-
-

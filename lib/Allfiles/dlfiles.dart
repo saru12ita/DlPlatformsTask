@@ -15,10 +15,15 @@ class AccessFileController extends GetxController {
       final networkService = NetworkService();
       final data = await networkService.getFilesAndFolders(); // Fetch files and folders
 
-      folders.value = List<String>.from(data['folders']); // Assuming the response contains 'folders' key
-      files.value = List<String>.from(data['files']); // Assuming the response contains 'files' key
+      if (data['status'] == 'success') {
+        folders.value = List<String>.from(data['data']['folders'] ?? []);
+        files.value = List<String>.from(data['data']['files'] ?? []);
+      } else {
+        Get.snackbar('Error', data['message'], snackPosition: SnackPosition.BOTTOM);
+      }
     } catch (e) {
       print('Error fetching files and folders: $e');
+      Get.snackbar('Error', 'Failed to fetch files and folders', snackPosition: SnackPosition.BOTTOM);
     }
   }
 }
